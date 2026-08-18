@@ -49,6 +49,7 @@ from resources_servers.swebench_pro.verification import (
 
 class SWEBenchProResourcesServerConfig(BaseResourcesServerConfig):
     is_verifying_golden_patch: bool = False
+    prefetch_go_modules: bool = False
     evaluation_timeout: int | None = None
     image_repository: str = "docker.io/jefzda/sweap-images"
     sandbox_provider: str
@@ -188,6 +189,8 @@ class SWEBenchProResourcesServer(SimpleResourcesServer):
             before_repo_set_cmd=body.before_repo_set_cmd,
             base_dockerfile=body.base_dockerfile,
             instance_dockerfile=body.instance_dockerfile,
+            repo_language=body.repo_language,
+            prefetch_go_modules=self.config.prefetch_go_modules,
         )
 
     async def seed_session(

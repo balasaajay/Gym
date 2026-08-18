@@ -69,6 +69,8 @@ class VerificationInputs:
     before_repo_set_cmd: str = ""
     base_dockerfile: str = ""
     instance_dockerfile: str = ""
+    repo_language: str = ""
+    prefetch_go_modules: bool = False
 
 
 @dataclass(frozen=True)
@@ -123,6 +125,16 @@ def create_entryscript(sample: dict[str, Any]) -> str:
     # NeMo Gym change: parse untrusted dataset content safely instead of using eval().
     selected_test_files_to_run = ",".join(parse_string_list(sample["selected_test_files_to_run"]))
     base_commit = sample["base_commit"]
+    # NeMo Gym change: optionally warm Go's module cache before the upstream test command.
+    should_prefetch_go_modules = sample.get("prefetch_go_modules", False) and (
+        str(sample.get("repo_language", "")).lower() == "go" or "go test " in sample["run_script"]
+    )
+    go_module_prefetch_cmd = ""
+    if should_prefetch_go_modules:
+        go_module_prefetch_cmd = """# NeMo Gym change: prefetch modules without modifying the upstream test script.
+if [ -f go.mod ]; then
+  go mod download
+fi"""
     # NeMo Gym change: Dockerfiles are embedded in the prepared row instead of read from an upstream checkout.
     base_dockerfile = sample["base_dockerfile"]
     instance_dockerfile = sample["instance_dockerfile"]
@@ -149,6 +161,7 @@ git apply -v /workspace/patch.diff
 # NeMo Gym change: retain patch application status for the structured verification response.
 PATCH_APPLY_STATUS=$?
 {before_repo_set_cmd}
+{go_module_prefetch_cmd}
 # run test and save stdout and stderr to separate files
 bash /workspace/run_script.sh {selected_test_files_to_run} > /workspace/stdout.log 2> /workspace/stderr.log
 # run parsing script

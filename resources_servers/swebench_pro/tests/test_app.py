@@ -67,6 +67,7 @@ def make_server(*, golden: bool) -> SWEBenchProResourcesServer:
         sandbox_provider="test",
         sandbox_config={},
         is_verifying_golden_patch=golden,
+        prefetch_go_modules=True,
     )
     return SWEBenchProResourcesServer(config=config, server_client=MagicMock(spec=ServerClient))
 
@@ -92,6 +93,7 @@ def test_golden_patch_verify_and_cleanup(monkeypatch: MonkeyPatch) -> None:
     assert response.json()["reward"] == 1.0
     assert response.json()["model_patch"] == "gold patch"
     assert response.json()["resolved"] is True
+    assert verify.await_args.kwargs["inputs"].prefetch_go_modules is True
     create.assert_awaited_once()
     sandbox.stop.assert_awaited_once()
 

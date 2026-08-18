@@ -76,6 +76,26 @@ def test_create_entryscript_matches_upstream_contract() -> None:
     assert "npm install" in script
     assert "bash /workspace/run_script.sh a.py,b.py" in script
     assert "export FOO=bar" in script
+    assert "go mod download" not in script
+
+
+def test_create_entryscript_prefetches_go_modules_before_tests() -> None:
+    inputs = make_inputs(
+        run_script="#!/bin/bash\nset -e\ngo test ./...\n",
+        repo_language="Go",
+        prefetch_go_modules=True,
+    )
+
+    script = create_entryscript(asdict(inputs))
+
+    assert "go mod download" in script
+    assert script.index("git apply") < script.index("go mod download") < script.index("run_script.sh")
+
+
+def test_create_entryscript_does_not_prefetch_non_go_tasks() -> None:
+    inputs = make_inputs(repo_language="Python", prefetch_go_modules=True)
+
+    assert "go mod download" not in create_entryscript(asdict(inputs))
 
 
 def test_assemble_workspace_files_embeds_prepared_assets() -> None:
